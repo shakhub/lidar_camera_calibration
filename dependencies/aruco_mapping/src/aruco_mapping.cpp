@@ -93,8 +93,8 @@ ArucoMapping::ArucoMapping(ros::NodeHandle *nh) :
   parseCalibrationFile(calib_filename_);
 
   //Initialize OpenCV window
-  cv::namedWindow("Mono8", CV_WINDOW_AUTOSIZE);       
-      
+  cv::namedWindow("Mono8", CV_WINDOW_NORMAL);
+
   //Resize marker container
   markers_.resize(num_of_markers_);
   
@@ -171,10 +171,11 @@ ArucoMapping::imageCallback(const sensor_msgs::ImageConstPtr &original_image)
     ROS_ERROR("Not able to convert sensor_msgs::Image to OpenCV::Mat format %s", e.what());
     return;
   }
-  
+
   // sensor_msgs::Image to OpenCV Mat structure
   cv::Mat I = cv_ptr->image;
-  
+  //cv::resize(I, I, cv::Size(), 0.25, 0.25);
+
   // region of interest
   if(roi_allowed_==true)
     I = cv_ptr->image(cv::Rect(roi_x_,roi_y_,roi_w_,roi_h_));
@@ -183,10 +184,14 @@ ArucoMapping::imageCallback(const sensor_msgs::ImageConstPtr &original_image)
   processImage(I,I);
   
   // Show image
+  // cv::Mat imgShow = I.clone();
+  // cv::resize(imgShow, imgShow, cv::Size(), 0.25, 0.25);
+  // cv::imshow("Mono8", imgShow);
   cv::imshow("Mono8", I);
-  cv::waitKey(10);
-  /*cv::waitKey(2000);
-  ros::shutdown();*/
+  
+  //cv::waitKey(20000);
+  cv::waitKey(2000);
+  ros::shutdown();
 }
 
 
@@ -209,6 +214,7 @@ ArucoMapping::processImage(cv::Mat input_image,cv::Mat output_image)
   // If no marker found, print statement
   if(temp_markers.size() == 0)
     ROS_DEBUG("No marker found!");
+  ROS_INFO_STREAM("No. of markers found: "<< temp_markers.size());
 
   //------------------------------------------------------
   // FIRST MARKER DETECTED

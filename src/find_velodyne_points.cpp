@@ -33,6 +33,8 @@
 
 #include "lidar_camera_calibration/marker_6dof.h"
 
+#include <pcl/visualization/cloud_viewer.h>
+
 using namespace cv;
 using namespace std;
 using namespace ros;
@@ -47,6 +49,7 @@ string VELODYNE_TOPIC;
 Mat projection_matrix;
 
 pcl::PointCloud<myPointXYZRID> point_cloud;
+pcl::PointCloud<myPointXYZRID> point_cloud1;
 Hesai::PointCloud point_cloud_hesai;
 
 Eigen::Quaterniond qlidarToCamera; 
@@ -62,7 +65,7 @@ void callback_noCam(const sensor_msgs::PointCloud2ConstPtr& msg_pc,
 	// Loading Velodyne point cloud_sub
     if (config.lidar_type == 0) // velodyne lidar
     {
-	    fromROSMsg(*msg_pc, point_cloud);
+	    fromROSMsg(*msg_pc, point_cloud);	    
     }
     else if (config.lidar_type == 1) //hesai lidar
     {
@@ -70,7 +73,27 @@ void callback_noCam(const sensor_msgs::PointCloud2ConstPtr& msg_pc,
         point_cloud = *(toMyPointXYZRID(point_cloud_hesai));
     }
 
-	point_cloud = transform(point_cloud,  config.initialTra[0], config.initialTra[1], config.initialTra[2], config.initialRot[0], config.initialRot[1], config.initialRot[2]);
+    for (pcl::PointCloud<myPointXYZRID>::iterator pt = point_cloud.points.begin(); pt < point_cloud.points.end(); pt++)
+    {
+    	float x = pt->x;
+    	pt->x = -pt->z;
+    	pt->z = x;
+    	pt->y = -pt->y;
+    }
+    point_cloud = transform(point_cloud,  config.initialTra[0], config.initialTra[1], config.initialTra[2], config.initialRot[0], config.initialRot[1], config.initialRot[2]);
+    //pcl::PointCloud<myPointXYZRID>::iterator pt1 = point_cloud1.points.begin();
+    // for (pcl::PointCloud<myPointXYZRID>::iterator pt = point_cloud.points.begin(); pt < point_cloud.points.end(); pt++)
+    // {    	
+    // 	if (pt->z > 2.2 && pt->z < 2.7)// && pt->z > 2.8 && pt->z < 2.9 && pt->y > 0.2 && pt->y < 0.3)
+    // 	{
+    // 		std::cout<< "[" << pt->x << ", " << pt->y << ", " << pt->z << ", 1.0]," << std::endl;
+    // 		//std::cout<< pt1->x << " " << pt1->y << " " << pt1->z << std::endl;
+    // 	}
+    // 	//pt1++;    	
+    // }
+   
+    //point_cloud = point_cloud1;
+	
 
 	//Rotation matrix to transform lidar point cloud to camera's frame
 
@@ -80,9 +103,10 @@ void callback_noCam(const sensor_msgs::PointCloud2ConstPtr& msg_pc,
 
 	lidarToCamera = qlidarToCamera.matrix();
 
-	std:: cout << "\n\nInitial Rot" << lidarToCamera << "\n";
+	std:: cout << "\n\nInitial Rot\n" << lidarToCamera << "\n";
+	
 	point_cloud = intensityByRangeDiff(point_cloud, config);
-	// x := x, y := -z, z := y
+    // x := x, y := -z, z := y
 
 	//pcl::io::savePCDFileASCII ("/home/vishnu/PCDs/msg_point_cloud.pcd", pc);  
 
@@ -100,6 +124,7 @@ void callback_noCam(const sensor_msgs::PointCloud2ConstPtr& msg_pc,
 	std::cout << "\n";
 
 	bool no_error = getCorners(temp_mat, retval, config.P, config.num_of_markers, config.MAX_ITERS);
+    std::cout << no_error << " Is there any errors?"<< endl;
 	if(no_error){
 	    find_transformation(marker_info, config.num_of_markers, config.MAX_ITERS, lidarToCamera);
 	}

@@ -165,7 +165,6 @@ pcl::PointCloud<pcl::PointXYZ>* toPointsXYZ(pcl::PointCloud<myPointXYZRID> point
 	return new_cloud;
 }
 
-
 pcl::PointCloud<myPointXYZRID> transform(pcl::PointCloud<myPointXYZRID> pc, float x, float y, float z, float rot_x, float rot_y, float rot_z)
 {
 	Eigen::Affine3f transf = pcl::getTransformation(x, y, z, rot_x, rot_y, rot_z);
@@ -196,14 +195,14 @@ pcl::PointCloud<myPointXYZRID> normalizeIntensity(pcl::PointCloud<myPointXYZRID>
 
 pcl::PointCloud<myPointXYZRID> intensityByRangeDiff(pcl::PointCloud<myPointXYZRID> point_cloud, config_settings config)
 {
-
-	std::vector<std::vector<myPointXYZRID*>> rings(16);
+	
+	std::vector<std::vector<myPointXYZRID*>> rings(32);
 	
 	for(pcl::PointCloud<myPointXYZRID>::iterator pt = point_cloud.points.begin() ; pt < point_cloud.points.end(); pt++){
 		pt->range = (pt->x * pt->x + pt->y * pt->y + pt->z * pt->z);
 		rings[pt->ring].push_back(&(*pt));
 	}
-
+	
 	for(std::vector<std::vector<myPointXYZRID*>>::iterator ring = rings.begin(); ring < rings.end(); ring++){
 		myPointXYZRID* prev, *succ;
 		if (ring->empty())
@@ -223,10 +222,11 @@ pcl::PointCloud<myPointXYZRID> intensityByRangeDiff(pcl::PointCloud<myPointXYZRI
 			(*pt)->intensity = MAX( MAX( prev->range-(*pt)->range, succ->range-(*pt)->range), 0) * 10;
 		}
 	}
-	point_cloud = normalizeIntensity(point_cloud, 0.0, 1.0);
+	
+	point_cloud = normalizeIntensity(point_cloud, 0.0, 1.0);	
 
 	pcl::PointCloud<myPointXYZRID> filtered;
-
+	
 	for(pcl::PointCloud<myPointXYZRID>::iterator pt = point_cloud.points.begin() ; pt < point_cloud.points.end(); pt++)
 	{
 		if(pt->intensity  >  config.intensity_thresh)
@@ -236,7 +236,7 @@ pcl::PointCloud<myPointXYZRID> intensityByRangeDiff(pcl::PointCloud<myPointXYZRI
 				filtered.push_back(*pt);
 			}
 		}
-	}
+	}	
 
 	//pcl::io::savePCDFileASCII ("/home/vishnu/PCDs/filtered.pcd", *(toPointsXYZ(filtered)));
 	return filtered;

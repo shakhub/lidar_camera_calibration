@@ -32,9 +32,13 @@ cv::Point project(const pcl::PointXYZ &pt, const cv::Mat &projection_matrix)
 
 	cv::Mat pt_2D = projection_matrix * pt_3D;
 
-	float w = pt_2D.at<float>(2);
-	float x = pt_2D.at<float>(0) / w;
+	float w = pt_2D.at<float>(2); //2
+	float x = pt_2D.at<float>(0) / w; //0
 	float y = pt_2D.at<float>(1) / w;
+	
+	//std::cout << "After projection\n"; 
+	//std::cout<< x << " " << y << " " << w <<std::endl;
+	
 	return cv::Point(x, y);
 }
 cv::Mat project(cv::Mat projection_matrix, cv::Rect frame, pcl::PointCloud<pcl::PointXYZ> point_cloud, pcl::PointCloud<pcl::PointXYZ> *visible_points)
@@ -43,26 +47,26 @@ cv::Mat project(cv::Mat projection_matrix, cv::Rect frame, pcl::PointCloud<pcl::
 
 	for (pcl::PointCloud<pcl::PointXYZ>::iterator pt = point_cloud.points.begin(); pt < point_cloud.points.end(); pt++)
 	{
-
-	// behind the camera
-	if (pt->z < 0)
-	{
-		continue;
-	}
-
-	//float intensity = pt->intensity;
-	cv::Point xy = project(*pt, projection_matrix);
-	if (xy.inside(frame))
-	{
-		if (visible_points != NULL)
+		// behind the camera
+		if (pt->z < 0)
 		{
-		visible_points->push_back(*pt);
+			continue;
 		}
 
-		//cv::circle(plane, xy, 3, intensity, -1);
-		//plane.at<float>(xy) = intensity;
-		plane.at<float>(xy)=250;
-	}
+		//float intensity = pt->intensity;
+		cv::Point xy = project(*pt, projection_matrix);
+		if (xy.inside(frame))
+		{
+			if (visible_points != NULL)
+			{
+			    visible_points->push_back(*pt);			    
+			}
+
+			//cv::circle(plane, xy, 3, intensity, -1);
+			//plane.at<float>(xy) = intensity;
+			//std::cout<<"Point inside frame x: " << xy.x << " y: " << xy.y << std::endl;
+			plane.at<float>(xy)=250;
+		}
 	}
 
 	cv::Mat plane_gray;

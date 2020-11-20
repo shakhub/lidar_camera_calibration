@@ -1,5 +1,8 @@
 ﻿lidar_camera_calibration:
-  camera_frame_topic: /frontNear/left/image_raw
-  camera_info_topic: /frontNear/left/camera_info
+  #camera_frame_topic: /ximea_cam/image_raw
+  #camera_info_topic: /ximea_cam/xi_image_info
+  camera_frame_topic: /ximea_ros_cam/image_raw
+  camera_info_topic: /ximea_ros_cam/XiImageInfo
   velodyne_topic: /velodyne_points
+
 

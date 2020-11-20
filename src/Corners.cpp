@@ -34,6 +34,7 @@ bool getCorners(cv::Mat img, pcl::PointCloud<pcl::PointXYZ> scan, cv::Mat P, int
 	ROS_INFO_STREAM("iteration number: " << iteration_count << "\n");
 
 	/*Masking happens here */
+	//cv::resize(img, img, cv::Size(), 0.25, 0.25);
 	cv::Mat edge_mask = cv::Mat::zeros(img.size(), CV_8UC1);
 	//edge_mask(cv::Rect(520, 205, 300, 250))=1;
 	edge_mask(cv::Rect(0, 0, img.cols, img.rows))=1;
@@ -52,10 +53,7 @@ bool getCorners(cv::Mat img, pcl::PointCloud<pcl::PointXYZ> scan, cv::Mat P, int
 	//pcl::io::savePCDFileASCII("/home/vishnu/final2.pcd", scan.point_cloud);
 	
 	cv::Mat image_edge_laser = project(P, frame, scan, NULL);
-	cv::threshold(image_edge_laser, image_edge_laser, 10, 255, 0);
-
-
-	
+	cv::threshold(image_edge_laser, image_edge_laser, 10, 255, 0);	
 
 	cv::Mat combined_rgb_laser;
 	std::vector<cv::Mat> rgb_laser_channels;
@@ -64,8 +62,8 @@ bool getCorners(cv::Mat img, pcl::PointCloud<pcl::PointXYZ> scan, cv::Mat P, int
 	rgb_laser_channels.push_back(cv::Mat::zeros(image_edge_laser.size(), CV_8UC1));
 	rgb_laser_channels.push_back(img);
 			 
-	cv::merge(rgb_laser_channels, combined_rgb_laser);
-	/*cv::namedWindow("combined", cv::WINDOW_NORMAL); 
+	/*cv::merge(rgb_laser_channels, combined_rgb_laser);
+	cv::namedWindow("combined", cv::WINDOW_NORMAL); 
 	cv::imshow("combined", combined_rgb_laser);
 	cv::waitKey(5);
 	*/
@@ -77,29 +75,35 @@ bool getCorners(cv::Mat img, pcl::PointCloud<pcl::PointXYZ> scan, cv::Mat P, int
 	for(pcl::PointCloud<pcl::PointXYZ>::iterator pt = pc.points.begin(); pt < pc.points.end(); pt++)
 	{
 
-			// behind the camera
-			if (pt->z < 0)
-			{
-				continue;
-			}
+		// behind the camera
+		//std::cout<< pt->x << " " << pt->y << " " << pt->z << " " << " <-** " << std::endl;
+		if (pt->z < 0)
+		{
+			continue;
+		}
 
-			cv::Point xy = project(*pt, P);
-			if (xy.inside(frame))
-			{
-				//create a map of 2D and 3D points
-				point_3D.clear();
-				point_3D.push_back(pt->x);
-				point_3D.push_back(pt->y);
-				point_3D.push_back(pt->z);
-				c2D_to_3D[std::pair<int, int>(xy.x, xy.y)] = point_3D;
-			}
+		cv::Point xy = project(*pt, P);
+		
+		if (xy.inside(frame))
+		{				
+			//create a map of 2D and 3D points
+			point_3D.clear();
+			point_3D.push_back(pt->x);
+			point_3D.push_back(pt->y);
+			point_3D.push_back(pt->z);
+			c2D_to_3D[std::pair<int, int>(xy.x, xy.y)] = point_3D;
+		}
 	}
 
 	/* print the correspondences */
-	/*for(std::map<std::pair<int, int>, std::vector<float> >::iterator it=c2D_to_3D.begin(); it!=c2D_to_3D.end(); ++it)
+	for(std::map<std::pair<int, int>, std::vector<float> >::iterator it=c2D_to_3D.begin(); it!=c2D_to_3D.end(); ++it)
 	{
-		std::cout << it->first.first << "," << it->first.second << " --> " << it->second[0] << "," <<it->second[1] << "," <<it->second[2] << "\n";
-	}*/
+		std::cout << "(" << it->first.first << ", " << it->first.second << ")," << std::endl; //" --> " << it->second[0] << "," <<it->second[1] << "," <<it->second[2] << "\n";
+	}
+	for(std::map<std::pair<int, int>, std::vector<float> >::iterator it=c2D_to_3D.begin(); it!=c2D_to_3D.end(); ++it)
+	{
+		std::cout << "["<< it->second[0] << "," <<it->second[1] << "," <<it->second[2] << "],\n";
+	}
 
 	/* get region of interest */
 
@@ -114,12 +118,14 @@ bool getCorners(cv::Mat img, pcl::PointCloud<pcl::PointXYZ> scan, cv::Mat P, int
 
 
 	cv::namedWindow("cloud", cv::WINDOW_NORMAL);
-	cv::namedWindow("polygon", cv::WINDOW_NORMAL); 
+	cv::namedWindow("polygon", cv::WINDOW_NORMAL);
+	//cv::namedWindow("cloud1", cv::WINDOW_NORMAL);
+	// cv::namedWindow("polygon1", cv::WINDOW_NORMAL); 
 	//cv::namedWindow("combined", cv::WINDOW_NORMAL); 
 
 	std::string pkg_loc = ros::package::getPath("lidar_camera_calibration");
 	std::ofstream outfile(pkg_loc + "/conf/points.txt", std::ios_base::trunc);
-	outfile << QUADS*4 << "\n";
+	outfile << QUADS*4 << "\n";	
 
 	for(int q=0; q<QUADS; q++)
 	{
@@ -137,15 +143,19 @@ bool getCorners(cv::Mat img, pcl::PointCloud<pcl::PointXYZ> scan, cv::Mat P, int
 				polygon.clear();
 				collected = 0;
 				while(collected != LINE_SEGMENTS[q])
-				{
-					
-						cv::setMouseCallback("cloud", onMouse, &_point_);
-						
-						cv::imshow("cloud", image_edge_laser);
-						cv::waitKey(0);
-						++collected;
-						//std::cout << _point_.x << " " << _point_.y << "\n";
-						polygon.push_back(_point_);
+				{					
+					cv::setMouseCallback("cloud", onMouse, &_point_);						
+					cv::imshow("cloud", image_edge_laser);
+
+					// cv::Mat image_edge_laser_resize = image_edge_laser.clone();
+					// cv::resize(image_edge_laser_resize, image_edge_laser_resize, cv::Size(), 0.25, 0.25);
+					// cv::setMouseCallback("cloud1", onMouse, &_point_);						
+					// cv::imshow("cloud1", image_edge_laser_resize);
+
+					cv::waitKey(0);
+					++collected;
+					//std::cout << _point_.x << " " << _point_.y << "\n";
+					polygon.push_back(_point_);
 				}
 				stored_corners.push_back(polygon);
 			}
